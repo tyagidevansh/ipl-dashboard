@@ -25,12 +25,18 @@ interface PlayerData {
   runs: number;
   wickets: number;
   team: string;
+  isSold?: boolean;
+  soldTo?: string;
+  sellingPrice?: number;
 }
 
 export default function PlayerPage() {
   const [players, setPlayers] = useState<Array<PlayerData>>([]);
   const [player, setPlayer] = useState<PlayerData>();
-  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [sellingPrice, setSellingPrice] = useState("");
+  const [soldTo, setSoldTo] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { id } = useParams();
   const router = useRouter();
 
@@ -61,6 +67,42 @@ export default function PlayerPage() {
       </div>
     );
   }
+
+  const handleSellPlayer = async () => {
+    if (!sellingPrice || !soldTo) {
+      setError("Both fields are required.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/foreigners", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: player.player,
+          soldTo,
+          sellingPrice: parseFloat(sellingPrice), 
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update player.");
+      }
+
+      setSellingPrice("");
+      setSoldTo("");
+    } catch (err) {
+      console.log(err)
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-purple-900 text-white">
@@ -143,42 +185,56 @@ export default function PlayerPage() {
             </div>
 
             <div className="flex w-1/2 justify-between items-center mt-8">
-              <Popover>
-                <PopoverTrigger>
-                  <Button
-                    onClick={() => setOpenModal(true)}
-                    className="px-8 py-4 w-48 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
-                  >
-                    Sell Player
-                    <Gavel className="w-5 h-5" />
-                  </Button>
-                </PopoverTrigger>
+            <Popover>
+              <PopoverTrigger>
+                <Button className="px-8 py-4 w-48 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2">
+                  Sell Player
+                  <Gavel className="w-5 h-5" />
+                </Button>
+              </PopoverTrigger>
 
-                <PopoverContent className="w-96 bg-white/30 backdrop-blur-md border border-white/20 rounded-lg shadow-lg p-4">
-                  <div className="grid gap-4">
-                    <h4 className="text-xl font-semibold text-gray-900">Sell Player</h4>
+              <PopoverContent className="w-96 bg-white/30 backdrop-blur-md border border-white/20 rounded-lg shadow-lg p-4">
+                <div className="grid gap-4">
+                  <h4 className="text-xl font-semibold text-gray-900">Sell Player</h4>
 
-                    <div className="grid gap-3">
-                      <div className="grid grid-cols-3 items-center gap-3">
-                        <Label htmlFor="price" className="text-gray-700">Selling Price</Label>
-                        <div className="col-span-2 flex items-center bg-gray-100 px-2 rounded-lg">
-                          <Input id="maxWidth" className="h-10 flex-grow border-none bg-transparent" />
-                          <span className="ml-2 text-gray-500">CR</span>
-                        </div>
+                  <div className="grid gap-3">
+                    <div className="grid grid-cols-3 items-center gap-3">
+                      <Label htmlFor="price" className="text-gray-700">Selling Price</Label>
+                      <div className="col-span-2 flex items-center bg-gray-100 px-2 rounded-lg">
+                        <Input
+                          id="price"
+                          type="number"
+                          className="h-10 flex-grow border-none bg-transparent"
+                          value={sellingPrice}
+                          onChange={(e) => setSellingPrice(e.target.value)}
+                        />
+                        <span className="ml-2 text-gray-500">CR</span>
                       </div>
-
-                      <div className="grid grid-cols-3 items-center gap-3">
-                        <Label htmlFor="team" className="text-gray-700">Team</Label>
-                        <Input id="team" className="col-span-2 h-10 bg-gray-100 px-2 rounded-lg border-none" />
-                      </div>
-
-                      <Button className="w-full mt-4 bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition">
-                        Done
-                      </Button>
                     </div>
+
+                    <div className="grid grid-cols-3 items-center gap-3">
+                      <Label htmlFor="team" className="text-gray-700">Team</Label>
+                      <Input
+                        id="team"
+                        className="col-span-2 h-10 bg-gray-100 px-2 rounded-lg border-none"
+                        value={soldTo}
+                        onChange={(e) => setSoldTo(e.target.value)}
+                      />
+                    </div>
+
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                    <Button
+                      className="w-full mt-4 bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition"
+                      onClick={handleSellPlayer}
+                      disabled={loading}
+                    >
+                      {loading ? "Processing..." : "Done"}
+                    </Button>
                   </div>
-                </PopoverContent>
-              </Popover>
+                </div>
+              </PopoverContent>
+            </Popover>
 
               <Button
                 onClick={() => router.push(`/indian/${parseInt(id as string) + 1}`)}

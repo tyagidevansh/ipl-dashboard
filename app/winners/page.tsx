@@ -1,6 +1,6 @@
 "use client"
 import React, { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Trophy, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy, Star, Medal } from "lucide-react";
 
 interface PlayerData {
   _id: string;
@@ -22,7 +22,14 @@ const WinnersReveal = () => {
   const [error, setError] = useState<string | null>(null);
   const [showIntro, setShowIntro] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-  
+
+  const positionColors: Record<number, string> = {
+    0: "from-blue-400 to-blue-500",
+    1: "from-amber-600 to-amber-700",
+    2: "from-slate-300 to-slate-400",
+    3: "from-yellow-400 to-yellow-600"
+  };
+
   useEffect(() => {
     async function fetchWinners() {
       try {
@@ -53,14 +60,16 @@ const WinnersReveal = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-800 to-gray-900 overflow-hidden">
         <div className="relative">
-          {[...Array(20)].map((_, i) => (
+          {[...Array(30)].map((_, i) => (
             <div
               key={i}
               className="absolute animate-pulse"
               style={{
-                top: `${Math.random() * 200 - 100}px`,
-                left: `${Math.random() * 200 - 100}px`,
+                top: `${Math.random() * 300 - 150}px`,
+                left: `${Math.random() * 300 - 150}px`,
+                transform: `rotate(${Math.random() * 360}deg)`,
                 animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${1 + Math.random() * 2}s`,
               }}
             >
               <Star className="w-4 h-4 text-yellow-400/30" />
@@ -90,91 +99,105 @@ const WinnersReveal = () => {
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? 3 : prev - 1));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-600 to-gray-900 flex items-center justify-center p-2">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-800 to-gray-900 flex items-center justify-center p-4">
       <div className="relative w-full max-w-7xl">
         <button
           onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1 z-10 bg-white/10 backdrop-blur-sm p-3 rounded-full 
-                   text-white hover:bg-white/20 transition-all hover:scale-110"
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 backdrop-blur-sm p-3 rounded-full 
+                   text-white hover:bg-white/20 transition-all hover:scale-110 hover:shadow-lg hover:shadow-blue-500/20"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
         <button
           onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1 z-10 bg-white/10 backdrop-blur-sm p-3 rounded-full 
-                   text-white hover:bg-white/20 transition-all hover:scale-110"
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 backdrop-blur-sm p-3 rounded-full 
+                   text-white hover:bg-white/20 transition-all hover:scale-110 hover:shadow-lg hover:shadow-blue-500/20"
         >
           <ChevronRight className="w-6 h-6" />
         </button>
 
         <div className="overflow-hidden rounded-2xl bg-gray-800/40 backdrop-blur-sm border border-white/10">
           <div 
-            className="transition-transform duration-500 ease-out"
+            className="transition-transform duration-500 ease-out flex"
             style={{ transform: `translateX(-${currentSlide * 100}%)` }}
           >
-            <div className="flex">
-              {teams.map((team, index) => (
-                <div key={team.team} className="w-full flex-shrink-0">
-                  <div className="p-8">
-                    <div className="text-center mb-4 relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent blur-3xl -z-10" />
-                      
-                      <div className="relative inline-block mb-0">
+            {teams.map((team, index) => (
+              <div key={team.team} className="w-full flex-shrink-0">
+                <div className="p-6">
+                  <div className="text-center mb-6 relative">
+                    <div className={`absolute inset-0 bg-gradient-to-r ${positionColors[index]} opacity-5 blur-3xl -z-10`} />
+                    
+                    <div className="relative inline-block">
+                      <div className="relative">
                         <img
                           src={`/team-logos/${team.team.toLowerCase()}outline.avif`}
                           alt={`${team.team} logo`}
-                          className="w-40 h-40 object-contain mx-auto drop-shadow-xl"
+                          className="w-32 h-32 object-contain mx-auto drop-shadow-xl"
                         />
-                        <div className="absolute -top-0 -right-4 w-16 h-16 bg-gradient-to-br from-blue-500 to-pink-500 
-                                    rounded-full flex items-center justify-center text-white text-2xl font-bold
-                                    border-4 border-gray-900">
+                        <div className={`absolute -top-2 -right-2 w-12 h-12 bg-gradient-to-br ${positionColors[index]}
+                                    rounded-full flex items-center justify-center text-white text-xl font-bold
+                                    border-2 border-gray-900 shadow-lg`}>
                           #{4 - index}
                         </div>
                       </div>
                       
-                      {/* <p className="text-blue-300 text-lg font-bold">Impact Score: {team.totalImpact.toFixed(1)}</p> */}
-                    </div>
-
-                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 px-4">
-                      {[...team.players]
-                        .sort((a, b) => b.impactPerMatch - a.impactPerMatch)
-                        .slice(0, 11)
-                        .map((player, playerIndex) => (
-                          <div 
-                            key={player._id}
-                            className="text-center group"
-                          >
-                            <div className="relative mb-3 transform group-hover:scale-110 transition-transform duration-300">
-                              <div className="w-full pb-[100%] relative overflow-hidden rounded-full">
-                                <img
-                                  src={player.imagePath}
-                                  alt={player.player}
-                                  className="absolute inset-0 w-full h-full object-cover"
-                                />
-                              </div>
-                              <div className="absolute inset-0 rounded-full ring-2 ring-yellow-400/80 ring-offset-2 ring-offset-gray-900" />
-                            </div>
-                            <h3 className="text-white text-sm font-medium truncate px-1">
-                              {player.player}
-                            </h3>
-                          </div>
-                        ))}
+                      <div className="mt-2">
+                        <p className="text-white text-2xl font-bold">{team.team}</p>
+                        <p className="text-blue-300 text-sm">Impact Score: {team.totalImpact.toFixed(1)}</p>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-11 gap-2 px-4">
+                    {[...team.players]
+                      .sort((a, b) => b.impactPerMatch - a.impactPerMatch)
+                      .slice(0, 11)
+                      .map((player, playerIndex) => (
+                        <div 
+                          key={player._id}
+                          className="text-center group relative"
+                        >
+                          <div className="relative transform group-hover:scale-110 transition-all duration-300">
+                            <div className="w-full pb-[100%] relative overflow-hidden rounded-full">
+                              <img
+                                src={player.imagePath}
+                                alt={player.player}
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            <div className={`absolute inset-0 rounded-full ring-2 ${
+                              playerIndex === 0 ? 'ring-yellow-400' : 'ring-blue-400/40'
+                            } ring-offset-1 ring-offset-gray-900`} />
+                            {playerIndex === 0 && (
+                              <Medal className="absolute -top-1 -right-1 w-4 h-4 text-yellow-400" />
+                            )}
+                          </div>
+                          <div className="mt-1 transform transition-all duration-300">
+                            <h3 className="text-white text-xs font-medium truncate px-1">
+                              {player.player}
+                            </h3>
+                            <p className="text-blue-300 text-xs">
+                              {player.impactPerMatch.toFixed(1)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="flex justify-center mt-6 space-x-3">
+        <div className="flex justify-center mt-4 space-x-2">
           {[0, 1, 2, 3].map((index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
                 currentSlide === index 
-                  ? 'bg-blue-600' 
+                  ? 'bg-blue-400 w-4' 
                   : 'bg-white/20 hover:bg-white/40'
               }`}
             />

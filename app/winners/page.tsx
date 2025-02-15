@@ -1,25 +1,13 @@
 "use client"
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy, Star } from "lucide-react";
 
 interface PlayerData {
   _id: string;
   player: string;
-  total_impact: number;
   impactPerMatch: number;
   imagePath: string;
-  battingStyle: string;
-  bowlingStyle: string;
   role: string;
-  matches: number;
-  runs: number;
-  wickets: number;
-  team: string;
-  isSold?: boolean;
-  soldTo?: string;
-  sellingPrice?: number;
 }
 
 interface TeamData {
@@ -28,21 +16,21 @@ interface TeamData {
   players: PlayerData[];
 }
 
-const WinnersShowcase = () => {
+const WinnersReveal = () => {
   const [teams, setTeams] = useState<TeamData[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [showIntro, setShowIntro] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
   useEffect(() => {
     async function fetchWinners() {
       try {
         const response = await fetch("/api/winners");
-        if (!response.ok) {
-          throw new Error("Failed to fetch team rankings.");
-        }
+        if (!response.ok) throw new Error("Failed to fetch winners");
         const data = await response.json();
-        setTeams(data.winners);
+        setTeams(data.winners.slice(0, 4).reverse());
+        setTimeout(() => setShowIntro(false), 3500);
       } catch (err) {
         setError((err as Error).message);
       } finally {
@@ -52,114 +40,149 @@ const WinnersShowcase = () => {
     fetchWinners();
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-    </div>
-  );
-
   if (error) return (
-    <div className="text-center p-6 bg-red-100 rounded-lg text-red-700 mt-10">
-      <p className="font-semibold">Error loading teams</p>
-      <p className="text-sm">{error}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+      <div className="text-center text-red-400 bg-gray-800/50 p-8 rounded-lg backdrop-blur-sm">
+        <p className="text-xl font-bold">Error loading results</p>
+        <p>{error}</p>
+      </div>
     </div>
   );
 
-  return (
-    <div className="w-full max-w-6xl mx-auto p-6">
-      <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold text-white mb-4">🏆 IPL Auction Results</h2>
-        <p className="text-gray-400">Team rankings based on total impact scores</p>
-      </div>
+  if (showIntro) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-800 to-gray-900 overflow-hidden">
+        <div className="relative">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute animate-pulse"
+              style={{
+                top: `${Math.random() * 200 - 100}px`,
+                left: `${Math.random() * 200 - 100}px`,
+                animationDelay: `${Math.random() * 2}s`,
+              }}
+            >
+              <Star className="w-4 h-4 text-yellow-400/30" />
+            </div>
+          ))}
 
-      {/* Team Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {teams.map((team, index) => (
-          <div
-            key={team.team}
-            onClick={() => setSelectedTeam(team)}
-            className="group relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 cursor-pointer 
-                     hover:scale-102 transition-all duration-300 border border-gray-700 hover:border-purple-500"
-          >
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center">
-              {index + 1}
+          <div className="relative z-10 text-center">
+            <div className="relative">
+              <Trophy className="w-32 h-32 mx-auto mb-8 text-yellow-400 animate-bounce" />
+              <div className="absolute inset-0 animate-pulse">
+                <Trophy className="w-32 h-32 mx-auto text-yellow-400/20 blur-lg" />
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <img
-                src={`/team-logos/${team.team.toLowerCase()}outline.avif`}
-                alt={`${team.team} logo`}
-                className="w-16 h-16 object-contain"
-              />
-              <div>
-                <h3 className="text-xl font-bold text-white group-hover:text-purple-400 transition-colors">
-                  {team.team}
-                </h3>
-                <div className="flex items-center mt-2">
-                  <span className="text-gray-400 text-sm">Total Impact:</span>
-                  <span className="ml-2 text-purple-400 font-bold">{team.totalImpact.toFixed(1)}</span>
-                </div>
-              </div>
-            </div>
+            <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-4 animate-pulse">
+              The Winners Are...
+            </h1>
+            
+            <div className="w-32 h-1 mx-auto bg-gradient-to-r from-blue-500 to-pink-500 rounded-full animate-pulse" />
           </div>
-        ))}
+        </div>
       </div>
+    );
+  }
 
-      {/* Player Details Modal */}
-      {selectedTeam && (
-        <Dialog open={Boolean(selectedTeam)} onOpenChange={() => setSelectedTeam(null)}>
-          <DialogContent className="bg-gray-900 border border-gray-700 text-white max-w-4xl">
-            <DialogHeader>
-              <div className="flex items-center space-x-4">
-                <img
-                  src={`/team-logos/${selectedTeam.team.toLowerCase()}outline.avif`}
-                  alt={`${selectedTeam.team} logo`}
-                  className="w-12 h-12 object-contain"
-                />
-                <DialogTitle className="text-2xl font-bold">{selectedTeam.team} Squad</DialogTitle>
-              </div>
-            </DialogHeader>
+  const nextSlide = () => setCurrentSlide((prev) => (prev === 3 ? 0 : prev + 1));
+  const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? 3 : prev - 1));
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-              {selectedTeam.players.map((player) => (
-                <div key={player._id} 
-                     className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-750 transition-colors">
-                  <div className="relative pb-[75%]">
-                    <img
-                      src={player.imagePath}
-                      alt={player.player}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h4 className="text-lg font-semibold truncate">{player.player}</h4>
-                    <p className="text-sm text-purple-400 mb-2">{player.role}</p>
-                    <div className="space-y-1 text-sm text-gray-300">
-                      <p>Matches: {player.matches}</p>
-                      <p>Runs: {player.runs}</p>
-                      {player.wickets > 0 && <p>Wickets: {player.wickets}</p>}
-                      <p className="text-purple-400 font-medium mt-2">
-                        Impact Score: {player.impactPerMatch.toFixed(1)}
-                      </p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-600 to-gray-900 flex items-center justify-center p-2">
+      <div className="relative w-full max-w-7xl">
+        <button
+          onClick={prevSlide}
+          className="absolute left-4 top-1/2 -translate-y-1 z-10 bg-white/10 backdrop-blur-sm p-3 rounded-full 
+                   text-white hover:bg-white/20 transition-all hover:scale-110"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button
+          onClick={nextSlide}
+          className="absolute right-4 top-1/2 -translate-y-1 z-10 bg-white/10 backdrop-blur-sm p-3 rounded-full 
+                   text-white hover:bg-white/20 transition-all hover:scale-110"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+
+        <div className="overflow-hidden rounded-2xl bg-gray-800/40 backdrop-blur-sm border border-white/10">
+          <div 
+            className="transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+          >
+            <div className="flex">
+              {teams.map((team, index) => (
+                <div key={team.team} className="w-full flex-shrink-0">
+                  <div className="p-8">
+                    <div className="text-center mb-4 relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent blur-3xl -z-10" />
+                      
+                      <div className="relative inline-block mb-0">
+                        <img
+                          src={`/team-logos/${team.team.toLowerCase()}outline.avif`}
+                          alt={`${team.team} logo`}
+                          className="w-40 h-40 object-contain mx-auto drop-shadow-xl"
+                        />
+                        <div className="absolute -top-0 -right-4 w-16 h-16 bg-gradient-to-br from-blue-500 to-pink-500 
+                                    rounded-full flex items-center justify-center text-white text-2xl font-bold
+                                    border-4 border-gray-900">
+                          #{4 - index}
+                        </div>
+                      </div>
+                      
+                      {/* <p className="text-blue-300 text-lg font-bold">Impact Score: {team.totalImpact.toFixed(1)}</p> */}
+                    </div>
+
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 px-4">
+                      {[...team.players]
+                        .sort((a, b) => b.impactPerMatch - a.impactPerMatch)
+                        .slice(0, 11)
+                        .map((player, playerIndex) => (
+                          <div 
+                            key={player._id}
+                            className="text-center group"
+                          >
+                            <div className="relative mb-3 transform group-hover:scale-110 transition-transform duration-300">
+                              <div className="w-full pb-[100%] relative overflow-hidden rounded-full">
+                                <img
+                                  src={player.imagePath}
+                                  alt={player.player}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="absolute inset-0 rounded-full ring-2 ring-yellow-400/80 ring-offset-2 ring-offset-gray-900" />
+                            </div>
+                            <h3 className="text-white text-sm font-medium truncate px-1">
+                              {player.player}
+                            </h3>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            
-            <div className="flex justify-end mt-6">
-              <Button 
-                onClick={() => setSelectedTeam(null)}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                Close
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          </div>
+        </div>
+
+        <div className="flex justify-center mt-6 space-x-3">
+          {[0, 1, 2, 3].map((index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                currentSlide === index 
+                  ? 'bg-blue-600' 
+                  : 'bg-white/20 hover:bg-white/40'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default WinnersShowcase;
+export default WinnersReveal;

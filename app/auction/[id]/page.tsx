@@ -61,34 +61,46 @@ export default function PlayerPage() {
   const [filteredTeams, setFilteredTeams] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [loadingPlayers, setLoadingPlayers] = useState(true);
   const { id } = useParams();
   const router = useRouter();
 
   useEffect(() => {
+    console.log("players fetched");
     async function fetchPlayers() {
-      try {
-        const response = await fetch("/api/indians");
-        const data = await response.json();
-        let indianPlayers: PlayerData[] = Array.isArray(data.data)
-          ? data.data
-          : [];
+      const val = localStorage.getItem("players");
+      if (val) {
+        const valJSON = JSON.parse(val);
+        setPlayers(valJSON);
+      } else {
+        try {
+          const response = await fetch("/api/indians");
+          const data = await response.json();
+          let indianPlayers: PlayerData[] = Array.isArray(data.data)
+            ? data.data
+            : [];
 
-        const foreigners = await fetch("/api/foreigners");
-        const fdata = await foreigners.json();
-        let foreignPlayers: PlayerData[] = Array.isArray(fdata.data)
-          ? fdata.data
-          : [];
+          const foreigners = await fetch("/api/foreigners");
+          const fdata = await foreigners.json();
+          let foreignPlayers: PlayerData[] = Array.isArray(fdata.data)
+            ? fdata.data
+            : [];
 
-        foreignPlayers = foreignPlayers.map((f) => ({ ...f, foreigner: true }));
-        indianPlayers = indianPlayers.filter((p) => !p.isSold);
-        foreignPlayers = foreignPlayers.filter((p) => !p.isSold);
+          foreignPlayers = foreignPlayers.map((f) => ({
+            ...f,
+            foreigner: true,
+          }));
+          indianPlayers = indianPlayers.filter((p) => !p.isSold);
+          foreignPlayers = foreignPlayers.filter((p) => !p.isSold);
 
-        const allPlayers = [...indianPlayers, ...foreignPlayers];
-        shuffleArray(allPlayers);
-
-        setPlayers(allPlayers);
-      } catch (error) {
-        console.error("Error fetching players:", error);
+          const allPlayers = [...indianPlayers, ...foreignPlayers];
+          shuffleArray(allPlayers);
+          
+          localStorage.setItem("players", JSON.stringify(allPlayers));
+          setPlayers(allPlayers);
+        } catch (error) {
+          console.error("Error fetching players:", error);
+        }
       }
     }
 
@@ -118,22 +130,42 @@ export default function PlayerPage() {
       setError("Both fields are required.");
       return;
     }
-
+  
     if (!player) {
       setError("Player data is not available.");
       return;
     }
-
+  
     if (!teams.includes(soldTo)) {
       setError("Invalid team selected. Please choose a valid IPL team.");
       return;
     }
-
+  
     setLoading(true);
     setError(null);
-
+  
     try {
-      const response = await fetch(
+      // Validate the sale before proceeding
+      const validationResponse = await fetch("/api/validateSell", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playerName: player.player,
+          foreigner: player.foreigner || false,
+          soldTo,
+          sellingPrice: parseFloat(sellingPrice),
+        }),
+      });
+  
+      const validationResult = await validationResponse.json();
+      if (!validationResult.valid) {
+        throw new Error(validationResult.error || "Sale validation failed.");
+      }
+  
+      // If validation passed, proceed with selling the player
+      const sellResponse = await fetch(
         player.foreigner ? "/api/foreigners" : "/api/indians",
         {
           method: "POST",
@@ -147,23 +179,24 @@ export default function PlayerPage() {
           }),
         }
       );
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to update player.");
+  
+      const sellResult = await sellResponse.json();
+      if (!sellResponse.ok) {
+        throw new Error(sellResult.error || "Failed to update player.");
       }
-
+  
       setShowSuccess(true);
       setTimeout(() => {
         router.push(`/auction/${parseInt(id as string) + 1}`);
       }, 3000);
-    } catch (err) {
-      console.log(err);
-      setError("Failed to sell player. Please try again.");
+    } catch (err: unknown) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Failed to sell player. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+  
 
   const handleTeamInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase();
@@ -199,32 +232,37 @@ export default function PlayerPage() {
       }
     }
   };
+  let i = parseInt(id as string);
+  if (Number.isInteger(i) && !player && players.length > 0) {
+    if (i > players.length) {
+      return (
+        <div className="flex flex-col items-center bg-gradient-to-br from-slate-900 to-blue-800 justify-center min-h-screen text-white">
+          <h1 className="text-3xl font-bold mb-4">No more players available</h1>
+          <p className="mb-3">
+            You have reached the end of the list of players.
+          </p>
+          <p className="mb-8">
+            Maybe try going back to see if any players were unsold.
+          </p>
+          <Button
+            onClick={() => {
+              localStorage.removeItem("players");
+              router.push("/auction/1");
+              router.refresh();
+            }}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-400 rounded-lg text-lg font-semibold hover:from-blue-700 hover:to-blue-500 transition-all duration-300"
+          >
+            Go Back to Start
+          </Button>
+        </div>
+      );
+    }
+  }
 
   if (!player) {
     return (
       <div className="flex items-center bg-gradient-to-br from-slate-900 to-blue-800 justify-center min-h-screen">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (parseInt(id as string) > players.length) {
-    return (
-      <div className="flex flex-col items-center bg-gradient-to-br from-slate-900 to-blue-800 justify-center min-h-screen text-white">
-        <h1 className="text-3xl font-bold mb-4">No more players available</h1>
-        <p className="mb-3">You have reached the end of the list of players.</p>
-        <p className="mb-8">
-          Maybe try going back to see if any players were unsold.
-        </p>
-        <Button
-          onClick={() => {
-            router.push("/auction/1");
-            router.refresh();
-          }}
-          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-400 rounded-lg text-lg font-semibold hover:from-blue-700 hover:to-blue-500 transition-all duration-300"
-        >
-          Go Back to Start
-        </Button>
       </div>
     );
   }
@@ -425,7 +463,7 @@ export default function PlayerPage() {
                         {error}
                       </p>
                     )}
-                    
+
                     <div>
                       <Button
                         className="w-full mt-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 rounded-lg font-semibold hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300"

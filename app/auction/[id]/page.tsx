@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { User, ChartNoAxesCombined, Calendar, Trophy, PersonStanding, Medal, ChevronRight, Gavel } from "lucide-react";
+import { User, ChartNoAxesCombined, Calendar, Trophy, PersonStanding, Medal, ChevronRight, Gavel, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +11,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import TeamStats from "@/components/teamInfo";
+import { BsAirplane } from "react-icons/bs";
 
 interface PlayerData {
   _id: string;
@@ -28,6 +31,7 @@ interface PlayerData {
   isSold?: boolean;
   soldTo?: string;
   sellingPrice?: number;
+  foreigner?: boolean;
 }
 
 export default function PlayerPage() {
@@ -37,17 +41,35 @@ export default function PlayerPage() {
   const [soldTo, setSoldTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const { id } = useParams();
   const router = useRouter();
 
   useEffect(() => {
     async function fetchPlayers() {
-      const response = await fetch("/api/foreigners");
-      const data = await response.json();
-      setPlayers(data.data);
+      try {
+        const response = await fetch("/api/indians");
+        const data = await response.json();
+        setPlayers(data.data); 
+  
+        const foreigners = await fetch("/api/foreigners");
+        const fdata = await foreigners.json();
+
+        const foreignPlayers: PlayerData[] = Array.isArray(fdata.data) ? fdata.data : [];
+
+        foreignPlayers.forEach((f) => {
+          f.foreigner = true;
+        });
+  
+        setPlayers((prevPlayers) => [...prevPlayers, ...foreignPlayers]);
+      } catch (error) {
+        console.error("Error fetching players:", error);
+      }
     }
+  
     fetchPlayers();
   }, []);
+  
 
   useEffect(() => {
     if (players.length > 0) {
@@ -60,17 +82,14 @@ export default function PlayerPage() {
     }
   }, [players, id]);
 
-  if (!player) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-600"></div>
-      </div>
-    );
-  }
-
   const handleSellPlayer = async () => {
     if (!sellingPrice || !soldTo) {
       setError("Both fields are required.");
+      return;
+    }
+
+    if (!player) {
+      setError("Player data is not available.");
       return;
     }
 
@@ -78,7 +97,7 @@ export default function PlayerPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/foreigners", {
+      const response = await fetch(player.foreigner ? "/api/foreigners" : "/api/indians", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +105,7 @@ export default function PlayerPage() {
         body: JSON.stringify({
           name: player.player,
           soldTo,
-          sellingPrice: parseFloat(sellingPrice), 
+          sellingPrice: parseFloat(sellingPrice),
         }),
       });
 
@@ -95,21 +114,44 @@ export default function PlayerPage() {
         throw new Error(result.error || "Failed to update player.");
       }
 
-      setSellingPrice("");
-      setSoldTo("");
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.push(`/auction/${parseInt(id as string) + 1}`);
+      }, 5000);
+
     } catch (err) {
-      console.log(err)
+      console.log(err);
+      setError("Failed to sell player. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  if (!player) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-purple-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex">
-          <div className="w-2/3 pr-8">
-            <div className="flex items-center mb-8">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 to-purple-800 text-white">
+      {showSuccess && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top duration-700">
+          <Alert className="bg-gradient-to-r from-green-500/90 to-emerald-500/90 border-none text-white backdrop-blur-sm shadow-lg">
+            <CheckCircle2 className="h-6 w-6" />
+            <AlertTitle className="text-lg font-bold">Sale Successful!</AlertTitle>
+            <AlertDescription className="text-base">
+              {player.player} has been sold to {soldTo} for {sellingPrice} CR
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
+      <div className="flex">
+        <div className="w-3/5 pr-10 px-12 py-12">
+        <div className="flex items-center mb-8">
               <div className="relative">
                 <div className="absolute inset-0 border-8 border-yellow-400/30 rounded-lg transform -rotate-3"></div>
                 <div className="absolute inset-0 border-8 border-purple-400/30 rounded-lg transform rotate-3"></div>
@@ -130,6 +172,7 @@ export default function PlayerPage() {
                 <div className="flex items-center mt-4 text-yellow-400">
                   <Trophy className="w-5 h-5 mr-2" />
                   <span className="text-xl">{player.team}</span>
+                  <span className="ml-5">{player.foreigner && <BsAirplane/>}</span>
                 </div>
               </div>
             </div>
@@ -141,7 +184,7 @@ export default function PlayerPage() {
                     <User className="w-8 h-8 text-yellow-400 mr-4" />
                     <div>
                       <p className="text-sm text-purple-200">Role</p>
-                      <p className="text-xl font-semibold">{player.role}</p>
+                      <p className="text-xl font-semibold text-white">{player.role}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -153,7 +196,7 @@ export default function PlayerPage() {
                     <Calendar className="w-8 h-8 text-yellow-400 mr-4" />
                     <div>
                       <p className="text-sm text-purple-200">Matches</p>
-                      <p className="text-xl font-semibold">{player.matches}</p>
+                      <p className="text-xl font-semibold text-white">{player.matches}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -165,7 +208,7 @@ export default function PlayerPage() {
                     <PersonStanding className="w-8 h-8 text-yellow-400 mr-4" />
                     <div>
                       <p className="text-sm text-purple-200">Runs</p>
-                      <p className="text-xl font-semibold">{player.runs}</p>
+                      <p className="text-xl font-semibold text-white">{player.runs}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -177,14 +220,14 @@ export default function PlayerPage() {
                     <ChartNoAxesCombined className="w-8 h-8 text-yellow-400 mr-4" />
                     <div>
                       <p className="text-sm text-purple-200">Wickets</p>
-                      <p className="text-xl font-semibold">{player.wickets}</p>
+                      <p className="text-xl font-semibold text-white">{player.wickets}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
-
-            <div className="flex w-1/2 justify-between items-center mt-8">
+          
+          <div className="flex w-1/2 justify-between items-center mt-8">
             <Popover>
               <PopoverTrigger>
                 <Button className="px-8 py-4 w-48 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2">
@@ -193,63 +236,77 @@ export default function PlayerPage() {
                 </Button>
               </PopoverTrigger>
 
-              <PopoverContent className="w-96 bg-white/30 backdrop-blur-md border border-white/20 rounded-lg shadow-lg p-4">
+              <PopoverContent className="w-96 bg-gradient-to-br from-purple-900/95 to-slate-900/95 backdrop-blur-md border border-purple-500/30 rounded-lg shadow-xl p-6">
                 <div className="grid gap-4">
-                  <h4 className="text-xl font-semibold text-gray-900">Sell Player</h4>
+                  <div className="flex items-center gap-3 border-b border-purple-500/30 pb-4">
+                    <Gavel className="w-6 h-6 text-yellow-400" />
+                    <h4 className="text-xl font-semibold text-white">Sell Player</h4>
+                  </div>
 
-                  <div className="grid gap-3">
-                    <div className="grid grid-cols-3 items-center gap-3">
-                      <Label htmlFor="price" className="text-gray-700">Selling Price</Label>
-                      <div className="col-span-2 flex items-center bg-gray-100 px-2 rounded-lg">
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="price" className="text-purple-200">Selling Price</Label>
+                      <div className="flex items-center bg-white/10 rounded-lg border border-purple-500/30 focus-within:border-yellow-400/50 transition-colors">
                         <Input
                           id="price"
                           type="number"
-                          className="h-10 flex-grow border-none bg-transparent"
+                          className="h-10 flex-grow border-none bg-transparent text-white placeholder:text-purple-300"
                           value={sellingPrice}
                           onChange={(e) => setSellingPrice(e.target.value)}
                         />
-                        <span className="ml-2 text-gray-500">CR</span>
+                        <span className="mr-3 text-purple-300">CR</span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 items-center gap-3">
-                      <Label htmlFor="team" className="text-gray-700">Team</Label>
+                    <div className="grid gap-2">
+                      <Label htmlFor="team" className="text-purple-200">Team</Label>
                       <Input
                         id="team"
-                        className="col-span-2 h-10 bg-gray-100 px-2 rounded-lg border-none"
+                        className="h-10 bg-white/10 rounded-lg border border-purple-500/30 focus:border-yellow-400/50 transition-colors text-white placeholder:text-purple-300"
                         value={soldTo}
                         onChange={(e) => setSoldTo(e.target.value)}
                       />
                     </div>
 
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                    {error && (
+                      <p className="text-red-400 text-sm bg-red-500/10 p-2 rounded border border-red-500/30">
+                        {error}
+                      </p>
+                    )}
 
-                    <Button
-                      className="w-full mt-4 bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition"
-                      onClick={handleSellPlayer}
-                      disabled={loading}
-                    >
-                      {loading ? "Processing..." : "Done"}
-                    </Button>
+                    <div>
+                      <Button
+                        className="mt-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 rounded-lg font-semibold hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300"
+                        onClick={handleSellPlayer}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Processing...
+                          </div>
+                        ) : (
+                          "Confirm Sale"
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </PopoverContent>
             </Popover>
 
-              <Button
-                onClick={() => router.push(`/indian/${parseInt(id as string) + 1}`)}
-                className="w-48 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                Next Player
-                <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </div>
-
+            <Button
+              onClick={() => router.push(`/auction/${parseInt(id as string) + 1}`)}
+              className="w-48 ml-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              Next Player
+              <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+            </Button>
           </div>
+        </div>
 
-          <div className="w-1/3">
-            {/* team budgets*/}
-          </div>
+        <div className="w-2/5 py-8 px-8">
+          <TeamStats />
         </div>
       </div>
     </div>

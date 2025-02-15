@@ -5,6 +5,7 @@ import { MdSportsCricket } from "react-icons/md";
 import { BiSolidCricketBall } from "react-icons/bi";
 import { GiCricketBat } from "react-icons/gi";
 import { GiGloves } from "react-icons/gi";
+import { FaRupeeSign } from "react-icons/fa";
 
 interface Team {
   team: string;
@@ -46,60 +47,60 @@ export default function TeamStats() {
   if (error) return <div className="text-center text-red-500">Error: {error}</div>;
 
   return (
-    <div className="w-full overflow-y-auto bg-purple-900 p-2">
+    <div className="w-full overflow-y-auto bg-transparent p-2">
       <div className="grid grid-cols-1 gap-3">
         {teams.map((team) => (
           <div
             key={team.team}
-            className="bg-gradient-to-r from-purple-800 to-purple-900 rounded-lg p-1 hover:from-purple-700 hover:to-purple-800 transition-all"
+            className="bg-gradient-to-r from-blue-800 to-blue-900 rounded-lg p-1 hover:from-blue-700 hover:to-blue-800 transition-all"
           >
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3 min-w-fit">
-                <div className="w-10 h-10 bg-purple-700 rounded-full overflow-hidden">
+                <div className="w-10 h-10 bg-blue-700 rounded-full overflow-hidden">
                   <img
                     src={`/team-logos/${team.team}outline.avif`}
                     alt={`${team.team} logo`}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="text-yellow-400 font-bold text-base min-w-10">{team.team}</span>
+                <span className="text-white font-bold text-base min-w-10">{team.team}</span>
               </div>
 
-              <div className="flex items-center gap-6 flex-grow">
+              <div className="flex items-center gap-4 flex-grow">
                 <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-purple-300" />
+                  <Users className="w-5 h-5 text-blue-300" />
                   <div className="text-base">
-                    <span className="text-yellow-400">{team.totalPlayers.indians}</span>
-                    <span className="text-purple-300">/7</span>
-                    <span className="mx-1 text-purple-300">|</span>
-                    <span className="text-yellow-400">{team.totalPlayers.foreigners}</span>
-                    <span className="text-purple-300">/4</span>
+                    <span className="text-white">{team.totalPlayers.indians}</span>
+                    <span className="text-blue-300">/7</span>
+                    <span className="mx-1 text-blue-300">|</span>
+                    <span className="text-white">{team.totalPlayers.foreigners}</span>
+                    <span className="text-blue-300">/4</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-yellow-400" />
+                <div className="flex items-center gap-1">
+                  <FaRupeeSign className="w-4 h-4 text-yellow-400" />
                   <span className="text-sm text-yellow-400 font-bold">
-                    {team.purseRemaining}
+                    {team.purseRemaining} <span className="text-xs">CR</span>
                   </span>
                 </div>
 
                 <div className="flex items-center gap-4 ml-auto">
                   <div className="flex items-center gap-1">
-                    <GiCricketBat className="w-5 h-5 text-purple-300" />
-                    <span className="text-sm text-yellow-400">{team.roleCounts.batsmen}</span>
+                    <GiCricketBat className="w-5 h-5 text-blue-300" />
+                    <span className="text-sm text-white">{team.roleCounts.batsmen}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <BiSolidCricketBall className="w-5 h-5 text-purple-300" />
-                    <span className="text-sm text-yellow-400">{team.roleCounts.bowlers}</span>
+                    <BiSolidCricketBall className="w-5 h-5 text-blue-300" />
+                    <span className="text-sm text-white">{team.roleCounts.bowlers}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <GiGloves className="w-5 h-5 text-purple-300" />
-                    <span className="text-sm text-yellow-400">{team.roleCounts.wicketkeepers}</span>
+                    <GiGloves className="w-5 h-5 text-blue-300" />
+                    <span className="text-sm text-white">{team.roleCounts.wicketkeepers}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <MdSportsCricket className="w-5 h-5 text-purple-300" />
-                    <span className="text-sm text-yellow-400">{team.roleCounts.allRounders}</span>
+                    <MdSportsCricket className="w-5 h-5 text-blue-300" />
+                    <span className="text-sm text-white">{team.roleCounts.allRounders}</span>
                   </div>
                 </div>
               </div>

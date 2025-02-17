@@ -62,6 +62,7 @@ export default function PlayerPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
+  const [openPopover, setOpenPopover] = useState(false);
   const { id } = useParams();
   const router = useRouter();
 
@@ -145,7 +146,6 @@ export default function PlayerPage() {
     setError(null);
   
     try {
-      // Validate the sale before proceeding
       const validationResponse = await fetch("/api/validateSell", {
         method: "POST",
         headers: {
@@ -163,8 +163,7 @@ export default function PlayerPage() {
       if (!validationResult.valid) {
         throw new Error(validationResult.error || "Sale validation failed.");
       }
-  
-      // If validation passed, proceed with selling the player
+
       const sellResponse = await fetch(
         player.foreigner ? "/api/foreigners" : "/api/indians",
         {
@@ -186,6 +185,7 @@ export default function PlayerPage() {
       }
   
       setShowSuccess(true);
+      setOpenPopover(false);
       setTimeout(() => {
         router.push(`/auction/${parseInt(id as string) + 1}`);
       }, 3000);
@@ -300,16 +300,22 @@ export default function PlayerPage() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 to-blue-800 text-white">
       {showSuccess && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top duration-700">
-          <Alert className="bg-gradient-to-r from-green-500/90 to-emerald-500/90 border-none text-white backdrop-blur-sm shadow-lg">
-            <CheckCircle2 className="h-6 w-6" />
-            <AlertTitle className="text-lg font-bold">
-              Sale Successful!
-            </AlertTitle>
-            <AlertDescription className="text-base">
-              {player.player} has been sold to {soldTo} for {sellingPrice} CR
-            </AlertDescription>
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <Alert className="bg-gradient-to-r from-green-500/95 to-emerald-500/95 border-none text-white backdrop-blur-sm shadow-xl max-w-md w-full animate-in zoom-in-90 duration-300">
+            <div className="flex flex-col items-center text-center py-4 px-6">
+              <div className="rounded-full bg-white/20 p-2 mb-3">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <AlertTitle className="text-[50px] font-bold">
+                Sold!
+              </AlertTitle>
+              <AlertDescription className="text-[25px] mt-1">
+                {player.player} has been sold to {soldTo} for {sellingPrice} CR
+              </AlertDescription>
+            </div>
           </Alert>
+
+          <div className="fixed inset-0 bg-black/10 backdrop-blur-sm -z-10" />
         </div>
       )}
 
@@ -392,8 +398,8 @@ export default function PlayerPage() {
           </div>
 
           <div className="flex justify-center mt-14 items-center">
-            <Popover>
-              <PopoverTrigger>
+            <Popover open={openPopover} onOpenChange={setOpenPopover}>
+              <PopoverTrigger asChild>
                 <Button className="px-8 py-4 w-48 bg-gradient-to-r from-yellow-600 to-yellow-400 rounded-lg text-lg font-semibold hover:from-yellow-700 hover:to-yellow-700 transition-all duration-300 flex items-center justify-center gap-2">
                   Sell Player
                   <Gavel className="w-5 h-5" />

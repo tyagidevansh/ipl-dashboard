@@ -49,7 +49,7 @@ export default function Home() {
                 <span className="flex items-center justify-center gap-2">
                   Begin Auction
                   <Play className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
+                </span> 
               </button>
 
               <button

@@ -130,7 +130,7 @@ const WinnersReveal = () => {
                     <div className="relative inline-block">
                       <div className="relative">
                         <img
-                          src={`/team-logos/${team.team.toLowerCase()}outline.avif`}
+                          src={`/team-logos/${team.team.toUpperCase()}outline.avif`}
                           alt={`${team.team} logo`}
                           className="w-32 h-32 object-contain mx-auto drop-shadow-xl"
                         />

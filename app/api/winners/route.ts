@@ -84,10 +84,21 @@ export async function GET() {
     updateTeamRanking(soldIndians);
     updateTeamRanking(soldForeigners);
 
-    // Sort teams by total impact (descending order)
-    teamRankings.sort((a, b) => b.totalImpact - a.totalImpact);
+    // Filter out teams that do not meet the disqualification criteria
+    const qualifiedTeams = teamRankings.filter((team) => {
+      const players = team.players;
+      const hasWicketkeeper = players.some((player) => player.role === "Wicketkeeper");
+      const bowlerAndAllrounderCount = players.filter(
+        (player) => player.role === "Bowler" || player.role === "Allrounder" || player.role === "Bowling Allrounder"
+      ).length;
 
-    return NextResponse.json({ winners: teamRankings });
+      return hasWicketkeeper && bowlerAndAllrounderCount >= 5 && players.length === 11;
+    });
+
+    // Sort qualified teams by total impact (descending order)
+    qualifiedTeams.sort((a, b) => b.totalImpact - a.totalImpact);
+
+    return NextResponse.json({ winners: qualifiedTeams });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to fetch team rankings" }, { status: 500 });

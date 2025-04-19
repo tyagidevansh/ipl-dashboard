@@ -47,7 +47,7 @@ export default function TeamStats() {
     return <div className="text-center text-red-500">Error: {error}</div>;
 
   return (
-    <div className="w-full overflow-y-auto bg-transparent p-2">
+    <div className="w-full overflow-y-auto bg-transparent p-2 py-16">
       <div className="grid grid-cols-1 gap-3">
         {loading
           ? 
@@ -103,7 +103,7 @@ export default function TeamStats() {
                     <div className="flex items-center gap-1">
                       <FaRupeeSign className="w-4 h-4 text-yellow-400" />
                       <span className="text-sm text-yellow-400 font-bold">
-                        {team.purseRemaining} <span className="text-xs">CR</span>
+                        {parseFloat(team.purseRemaining.toString()).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="text-xs">CR</span>
                       </span>
                     </div>
 

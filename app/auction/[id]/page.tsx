@@ -320,7 +320,7 @@ export default function PlayerPage() {
       )}
 
       <div className="flex">
-        <div className="w-3/5 pr-10 px-12 py-12">
+        <div className="w-3/5 pr-10 px-12 py-28">
           <div className="flex flex-col items-center mb-8">
             <div className="relative">
               <div className="absolute inset-0 border-8 border-yellow-400/30 rounded-lg transform -rotate-3"></div>

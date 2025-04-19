@@ -47,29 +47,56 @@ interface TeamRanking {
   players: PlayerData[];
 }
 
-// Function to fetch sold players
+// Fetch sold players
 async function getSoldPlayers(collection: any): Promise<PlayerData[]> {
   return await collection.find({ isSold: true }).toArray();
+}
+
+// Check if team composition is valid
+function meetsTeamComposition(players: PlayerData[]): boolean {
+  let battingOptions = 0;
+  let bowlingOptions = 0;
+  let hasWicketkeeper = false;
+
+  players.forEach((player) => {
+    const role = player.role;
+
+    if (role === "Wicketkeeper") {
+      hasWicketkeeper = true;
+      battingOptions++;
+    } else if (role === "Batsman") {
+      battingOptions++;
+    } else if (role === "Allrounder" || role === "Bowling Allrounder") {
+      battingOptions++;
+      bowlingOptions++;
+    } else if (role === "Bowler") {
+      bowlingOptions++;
+    }
+  });
+
+  return (
+    hasWicketkeeper &&
+    battingOptions >= 7 &&
+    bowlingOptions >= 5 &&
+    players.length === 11
+  );
 }
 
 export async function GET() {
   try {
     await client.connect();
 
-    // Fetch sold players from both collections
     const [soldIndians, soldForeigners] = await Promise.all([
       getSoldPlayers(indiansCollection),
       getSoldPlayers(foreignersCollection),
     ]);
 
-    // Initialize team rankings
     const teamRankings: TeamRanking[] = teams.map((team) => ({
       team,
       totalImpact: 0,
       players: [],
     }));
 
-    // Function to update team impact and players
     function updateTeamRanking(players: PlayerData[]) {
       players.forEach((player) => {
         const teamIndex = teamRankings.findIndex((t) => t.team === player.soldTo);
@@ -80,27 +107,17 @@ export async function GET() {
       });
     }
 
-    // Process Indians and Foreigners separately
     updateTeamRanking(soldIndians);
     updateTeamRanking(soldForeigners);
 
-    // Filter out teams that do not meet the disqualification criteria
-    const qualifiedTeams = teamRankings.filter((team) => {
-      const players = team.players;
-      const hasWicketkeeper = players.some((player) => player.role === "Wicketkeeper");
-      const bowlerAndAllrounderCount = players.filter(
-        (player) => player.role === "Bowler" || player.role === "Allrounder" || player.role === "Bowling Allrounder"
-      ).length;
-
-      return hasWicketkeeper && bowlerAndAllrounderCount >= 5 && players.length === 11;
-    });
-
-    // Sort qualified teams by total impact (descending order)
-    qualifiedTeams.sort((a, b) => b.totalImpact - a.totalImpact);
+    const qualifiedTeams = teamRankings
+      .filter((team) => meetsTeamComposition(team.players))
+      .sort((a, b) => b.totalImpact - a.totalImpact)
+      .slice(0, 4); // Top 4 teams
 
     return NextResponse.json({ winners: qualifiedTeams });
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching team rankings:", error);
     return NextResponse.json({ error: "Failed to fetch team rankings" }, { status: 500 });
   }
 }
